@@ -20,7 +20,7 @@ class TestSplitNodesDelimiter(unittest.TestCase):
 
     def test_bold(self):
         node = TextNode("Hello **world** foo", TextType.TEXT)
-        result = split_nodes_delimiter([node], "*", TextType.BOLD)
+        result = split_nodes_delimiter([node], "**", TextType.BOLD)
 
         self.assertEqual(
             result,
