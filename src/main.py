@@ -1,5 +1,7 @@
-from htmlnode import HTMLNode
-from textnode import TextNode
+from htmlnode import HTMLNode, ParentNode
+from leafnode import LeafNode
+from splitnodedelimiter import split_nodes_delimiter
+from textnode import TextNode, TextType
 
 
 def main():
@@ -14,8 +16,20 @@ def main():
         },
     )
 
-    html = html_node.props_to_html()
-    print(html)
+    leaf_node = LeafNode("p", "Hello World!")
+
+    node = ParentNode(
+        "p",
+        [
+            LeafNode("b", "Bold text"),
+            LeafNode(None, "Normal text"),
+            LeafNode("i", "italic text"),
+            LeafNode(None, "Normal text"),
+        ],
+    )
+    node3 = TextNode("This is text with a `code block` word", TextType.TEXT)
+    new_nodes = split_nodes_delimiter([node3], "`", TextType.CODE)
+    print(new_nodes)
 
 
 main()
