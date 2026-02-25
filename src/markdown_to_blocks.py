@@ -151,19 +151,3 @@ def strip_and_convert_ulist(text):
         children.append(ParentNode("li", text_to_children(line)))
 
     return children
-
-
-md = """
-This is **bolded** paragraph
-text in a p
-tag here
-
-This is another paragraph with _italic_ text and `code` here
-
-"""
-
-
-node = markdown_to_html_node(md)
-html = node.to_html()
-
-print(html)
