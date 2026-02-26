@@ -1,11 +1,16 @@
-from htmlnode import HTMLNode, ParentNode
-from leafnode import LeafNode
-from splitnodedelimiter import split_nodes_delimiter
-from textnode import TextNode, TextType
+import os
+import shutil
+from create_public import create_public_files
+
+dir_path_static = "./static"
+dir_path_public = "./public"
 
 
 def main():
-    pass
+    print("Deleting public directory...")
+    if os.path.exists(dir_path_public):
+        shutil.rmtree(dir_path_public)
+    create_public_files("./static", "./public")
 
 
 main()
