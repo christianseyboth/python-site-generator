@@ -12,8 +12,8 @@ class BlockType(Enum):
     HEADING = "heading"
     CODE = "code"
     QUOTE = "quote"
-    UNORDERED_LIST = "unordered_list"
-    ORDERED_LIST = "ordered_list"
+    ULIST = "unordered_list"
+    OLIST = "ordered_list"
 
 
 def markdown_to_blocks(markdown):
@@ -48,7 +48,7 @@ def block_to_block_type(md):
         is_unordered_list = all(line.startswith("- ") for line in lines)
 
         if is_unordered_list:
-            return BlockType.UNORDERED_LIST
+            return BlockType.ULIST
 
     elif md.startswith("1. "):
         lines = md.split("\n")
@@ -57,97 +57,105 @@ def block_to_block_type(md):
         )
 
         if is_ordered_list:
-            return BlockType.ORDERED_LIST
+            return BlockType.OLIST
 
     return BlockType.PARAGRAPH
 
 
 def markdown_to_html_node(markdown):
     blocks = markdown_to_blocks(markdown)
-    block_nodes = []
-
+    children = []
     for block in blocks:
-        type = block_to_block_type(block)
+        html_node = block_to_html_node(block)
+        children.append(html_node)
+    return ParentNode("div", children, None)
 
-        if type == BlockType.PARAGRAPH:
-            lines = block.split("\n")
-            cleaned = [line.strip() for line in lines if len(line) != 0]
-            children = text_to_children(" ".join(cleaned))
-            block_nodes.append(ParentNode("p", children))
 
-        if type == BlockType.HEADING:
-            heading = strip_and_convert_headings(block)
-            stripped = block.lstrip("# ")
-
-            children = text_to_children(stripped)
-            block_nodes.append(ParentNode(heading, children))
-
-        if type == BlockType.CODE:
-            stripped = block[4:-3]
-            inner = TextNode(stripped, TextType.CODE)
-            block_nodes.append(ParentNode("pre", [text_node_to_html_node(inner)]))
-
-        if type == BlockType.QUOTE:
-            stripped = strip_and_convert_quotes(block)
-            children = text_to_children(stripped)
-            block_nodes.append(ParentNode("blockquote", children))
-
-        if type == BlockType.ORDERED_LIST:
-            children = strip_and_convert_olist(block)
-            block_nodes.append(ParentNode("ol", children))
-
-        if type == BlockType.UNORDERED_LIST:
-            children = strip_and_convert_ulist(block)
-            block_nodes.append(ParentNode("ul", children))
-
-    return ParentNode("div", block_nodes)
+def block_to_html_node(block):
+    block_type = block_to_block_type(block)
+    if block_type == BlockType.PARAGRAPH:
+        return paragraph_to_html_node(block)
+    if block_type == BlockType.HEADING:
+        return heading_to_html_node(block)
+    if block_type == BlockType.CODE:
+        return code_to_html_node(block)
+    if block_type == BlockType.OLIST:
+        return olist_to_html_node(block)
+    if block_type == BlockType.ULIST:
+        return ulist_to_html_node(block)
+    if block_type == BlockType.QUOTE:
+        return quote_to_html_node(block)
+    raise ValueError("invalid block type")
 
 
 def text_to_children(text):
-    nodes = text_to_textnodes(text)
+    text_nodes = text_to_textnodes(text)
+    children = []
+    for text_node in text_nodes:
+        html_node = text_node_to_html_node(text_node)
+        children.append(html_node)
+    return children
 
-    return [text_node_to_html_node(text_node) for text_node in nodes]
+
+def paragraph_to_html_node(block):
+    lines = block.split("\n")
+    paragraph = " ".join(lines)
+    children = text_to_children(paragraph)
+    return ParentNode("p", children)
 
 
-def strip_and_convert_headings(text):
-    hash_count = 0
-
-    for char in text.strip():
-        if char != "#":
+def heading_to_html_node(block):
+    level = 0
+    for char in block:
+        if char == "#":
+            level += 1
+        else:
             break
-        hash_count += 1
-
-    return f"h{hash_count}"
-
-
-def strip_and_convert_quotes(text):
-    lines = text.split("\n")
-    cleaned = [line.strip("> ", 1) for line in lines if len(line) != 0]
-    return " ".join(cleaned)
+    if level + 1 >= len(block):
+        raise ValueError(f"invalid heading level: {level}")
+    text = block[level + 1 :]
+    children = text_to_children(text)
+    return ParentNode(f"h{level}", children)
 
 
-def strip_and_convert_olist(text):
-    lines = text.split("\n")
-    cleaned = []
-    children = []
+def code_to_html_node(block):
+    if not block.startswith("```") or not block.endswith("```"):
+        raise ValueError("invalid code block")
+    text = block[4:-3]
+    raw_text_node = TextNode(text, TextType.TEXT)
+    child = text_node_to_html_node(raw_text_node)
+    code = ParentNode("code", [child])
+    return ParentNode("pre", [code])
 
+
+def olist_to_html_node(block):
+    items = block.split("\n")
+    html_items = []
+    for item in items:
+        parts = item.split(". ", 1)
+        text = parts[1]
+        children = text_to_children(text)
+        html_items.append(ParentNode("li", children))
+    return ParentNode("ol", html_items)
+
+
+def ulist_to_html_node(block):
+    items = block.split("\n")
+    html_items = []
+    for item in items:
+        text = item[2:]
+        children = text_to_children(text)
+        html_items.append(ParentNode("li", children))
+    return ParentNode("ul", html_items)
+
+
+def quote_to_html_node(block):
+    lines = block.split("\n")
+    new_lines = []
     for line in lines:
-        if len(line) != 0:
-            stripped = line.split(". ", 1)
-            cleaned.append(stripped[1])
-
-    for line in cleaned:
-        children.append(ParentNode("li", text_to_children(line)))
-
-    return children
-
-
-def strip_and_convert_ulist(text):
-    lines = text.split("\n")
-    cleaned = [line.lstrip("- ", 1) for line in lines if len(line) != 0]
-    children = []
-
-    for line in cleaned:
-        children.append(ParentNode("li", text_to_children(line)))
-
-    return children
+        if not line.startswith(">"):
+            raise ValueError("invalid quote block")
+        new_lines.append(line.lstrip(">").strip())
+    content = " ".join(new_lines)
+    children = text_to_children(content)
+    return ParentNode("blockquote", children)
