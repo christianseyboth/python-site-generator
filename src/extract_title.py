@@ -12,7 +12,7 @@ def extract_title(markdown):
     raise Exception("No h1 found!")
 
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     print(f"Generating page from {from_path}, to {dest_path} using {template_path}.")
 
     if not os.path.exists(from_path):
@@ -27,7 +27,12 @@ def generate_page(from_path, template_path, dest_path):
     template = open(template_path).read()
     html = node.to_html()
 
-    template = template.replace("{{ Title }}", title).replace("{{ Content }}", html)
+    template = (
+        template.replace("{{ Title }}", title)
+        .replace("{{ Content }}", html)
+        .replace('href)"/', f'href="{basepath}')
+        .replace('src="/', f'src="{basepath}')
+    )
 
     if not os.path.exists(os.path.dirname(dest_path)):
         os.makedirs(os.path.dirname(dest_path))

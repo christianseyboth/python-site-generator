@@ -4,7 +4,7 @@ import pathlib
 from extract_title import generate_page
 
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath):
     if not os.path.exists(dir_path_content):
         raise Exception("Content Path does not exist!")
 
@@ -19,6 +19,7 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
                     source_path,
                     template_path,
                     pathlib.Path(dest_path).with_suffix(".html"),
+                    basepath,
                 )
         else:
-            generate_pages_recursive(source_path, template_path, dest_path)
+            generate_pages_recursive(source_path, template_path, dest_path, basepath)
